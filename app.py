@@ -4,8 +4,8 @@ from dash.dependencies import Input, Output
 import dash_bootstrap_components as dbc
 from data import get_market_data, get_indicators_data
 
-app = dash.Dash(__name__, external_stylesheets=[dbc.themes.DARKLY])
-app.title = "Semáforo de Mercado"
+app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
+app.title = "CDI · Semáforo de Mercado"
 server = app.server
 
 MOVING_AVERAGES = ["DMA5", "EMA8", "EMA21", "DMA50", "DMA200"]
@@ -17,285 +17,295 @@ INDEX_NAMES = {
     "RUT": "Russell 2000",
 }
 
-# ── Colores semáforo ─────────────────────────────────────────────
-COLOR_GREEN  = "#6B8E23"
-COLOR_ORANGE = "#FF6D00"
-COLOR_RED    = "#FF1744"
-COLOR_GRAY   = "#555555"
+# ── Paleta CDI ────────────────────────────────────────────────────
+CDI_MINT    = "#00E5A0"
+CDI_NAVY    = "#0D1B3E"
+CDI_NAVY2   = "#162447"   # tarjetas / filas alternas
+CDI_WHITE   = "#FFFFFF"
+CDI_GRAY    = "#8892A4"
 
-TH_STYLE = {"color": "#888", "font-size": "11px", "border-bottom": "1px solid #333", "padding": "6px 10px"}
-TD_STYLE = {"color": "#CCCCCC", "font-size": "12px", "padding": "6px 10px"}
-TD_RIGHT = {**TD_STYLE, "text-align": "right"}
+SEM_GREEN   = "#6B8E23"   # verde oliva  > +0.5%
+SEM_ORANGE  = "#FF6D00"   # naranja  -0.5% a +0.5%
+SEM_RED     = "#FF1744"   # rojo  < -0.5%
 
-
-def semaphore_color(pct):
-    if pct > 0.5:
-        return COLOR_GREEN
-    elif pct >= -0.5:
-        return COLOR_ORANGE
-    else:
-        return COLOR_RED
-
-
-def semaphore_badge(pct):
-    color = semaphore_color(pct)
-    sign  = "+" if pct > 0 else ""
-    return html.Span(
-        f"{sign}{pct}%",
-        style={
-            "background-color": color,
-            "color": "white",
-            "padding": "2px 8px",
-            "border-radius": "10px",
-            "font-size": "11px",
-            "font-weight": "bold",
-            "white-space": "nowrap",
-        }
-    )
+# ── Estilos reutilizables ────────────────────────────────────────
+TH = {
+    "color": CDI_MINT,
+    "font-size": "11px",
+    "font-weight": "700",
+    "letter-spacing": "1px",
+    "text-transform": "uppercase",
+    "padding": "8px 10px",
+    "border-bottom": f"2px solid {CDI_MINT}",
+    "background-color": CDI_NAVY,
+    "white-space": "nowrap",
+}
+TD = {
+    "color": CDI_WHITE,
+    "font-size": "12px",
+    "padding": "7px 10px",
+    "border-bottom": "1px solid #1E2D4F",
+    "white-space": "nowrap",
+}
+TD_MUTED = {**TD, "color": CDI_GRAY}
+TD_RIGHT = {**TD, "text-align": "right"}
 
 
-def pending_badge():
-    return html.Span("⏳ Pendiente", style={
-        "background-color": "#333",
-        "color": "#777",
-        "padding": "2px 8px",
-        "border-radius": "10px",
+# ── Helpers ──────────────────────────────────────────────────────
+def sem_color(pct):
+    if pct > 0.5:   return SEM_GREEN
+    if pct >= -0.5: return SEM_ORANGE
+    return SEM_RED
+
+
+def badge(text, bg, text_color=CDI_WHITE):
+    return html.Span(text, style={
+        "background-color": bg,
+        "color": text_color,
+        "padding": "3px 9px",
+        "border-radius": "20px",
         "font-size": "11px",
-        "font-weight": "bold",
+        "font-weight": "700",
+        "white-space": "nowrap",
     })
 
 
-# ── Tabla izquierda: Índices ──────────────────────────────────────
-def build_indices_table(data):
-    header = html.Thead(html.Tr([
-        html.Th("Índice",       style=TH_STYLE),
-        html.Th("Nombre",       style=TH_STYLE),
-        html.Th("Precio (USD)", style={**TH_STYLE, "text-align": "right"}),
-        html.Th("DMA5",         style={**TH_STYLE, "text-align": "center"}),
-        html.Th("EMA8",         style={**TH_STYLE, "text-align": "center"}),
-        html.Th("EMA21",        style={**TH_STYLE, "text-align": "center"}),
-        html.Th("DMA50",        style={**TH_STYLE, "text-align": "center"}),
-        html.Th("DMA200",       style={**TH_STYLE, "text-align": "center"}),
-    ]))
-
-    rows = []
-    for name, values in data.items():
-        rows.append(html.Tr([
-            html.Td(name, style={**TD_STYLE, "font-weight": "bold", "color": "#FFD600"}),
-            html.Td(INDEX_NAMES.get(name, ""), style={**TD_STYLE, "color": "#AAAAAA"}),
-            html.Td(f"USD {values['price']:,.2f}", style=TD_RIGHT),
-            *[html.Td(semaphore_badge(values[ma]["pct"]),
-                      style={"text-align": "center", "padding": "5px 8px"})
-              for ma in MOVING_AVERAGES],
-        ]))
-
-    return dbc.Table(
-        [header, html.Tbody(rows)],
-        bordered=False, hover=True, size="sm",
-        style={"font-size": "12px", "margin-bottom": "0"},
-    )
+def pending_badge():
+    return badge("⏳ Pendiente", "#1E2D4F", CDI_GRAY)
 
 
-# ── Tabla derecha: Indicadores ────────────────────────────────────
 def vix_color(v):
-    if v < 15:    return COLOR_GREEN
-    elif v < 25:  return COLOR_ORANGE
-    else:         return COLOR_RED
+    return SEM_GREEN if v < 15 else (SEM_ORANGE if v < 25 else SEM_RED)
 
 def vvix_color(v):
-    if v < 90:    return COLOR_GREEN
-    elif v < 110: return COLOR_ORANGE
-    else:         return COLOR_RED
+    return SEM_GREEN if v < 90 else (SEM_ORANGE if v < 110 else SEM_RED)
 
 def skew_color(v):
-    if v < 120:   return COLOR_GREEN
-    elif v < 140: return COLOR_ORANGE
-    else:         return COLOR_RED
+    return SEM_GREEN if v < 120 else (SEM_ORANGE if v < 140 else SEM_RED)
 
 def rv_color(v):
-    if v < 12:    return COLOR_GREEN
-    elif v < 20:  return COLOR_ORANGE
-    else:         return COLOR_RED
+    return SEM_GREEN if v < 12 else (SEM_ORANGE if v < 20 else SEM_RED)
 
 
-def value_badge(value, color):
-    return html.Span(
-        f"{value}",
-        style={
-            "background-color": color,
-            "color": "white",
-            "padding": "2px 8px",
-            "border-radius": "10px",
-            "font-size": "11px",
-            "font-weight": "bold",
-            "white-space": "nowrap",
-        }
-    )
-
-
-def build_indicators_table(ind):
-    rows = []
-
-    # ── NYMO ────────────────────────────────────────────────────
-    rows.append(html.Tr([
-        html.Td("NYMO",             style={**TD_STYLE, "font-weight": "bold", "color": "#FFD600"}),
-        html.Td("McClellan Osc.",   style={**TD_STYLE, "color": "#AAAAAA"}),
-        html.Td(pending_badge(),    style={"text-align": "center", "padding": "5px 8px"}),
-        html.Td("—",                style={**TD_RIGHT, "color": "#555"}),
+# ── Tabla de Índices (izquierda) ─────────────────────────────────
+def build_indices_table(data):
+    header = html.Thead(html.Tr([
+        html.Th("Índice",       style=TH),
+        html.Th("Nombre",       style=TH),
+        html.Th("Precio (USD)", style={**TH, "text-align": "right"}),
+        *[html.Th(ma, style={**TH, "text-align": "center"}) for ma in MOVING_AVERAGES],
     ]))
 
-    # ── VIX ─────────────────────────────────────────────────────
+    rows = []
+    for i, (name, values) in enumerate(data.items()):
+        bg = CDI_NAVY if i % 2 == 0 else CDI_NAVY2
+        rows.append(html.Tr([
+            html.Td(name, style={**TD, "background-color": bg,
+                                 "color": CDI_MINT, "font-weight": "700"}),
+            html.Td(INDEX_NAMES.get(name, ""), style={**TD_MUTED, "background-color": bg}),
+            html.Td(f"USD {values['price']:,.2f}",
+                    style={**TD_RIGHT, "background-color": bg, "font-weight": "600"}),
+            *[html.Td(
+                badge(
+                    ("+" if values[ma]["pct"] > 0 else "") + f"{values[ma]['pct']}%",
+                    sem_color(values[ma]["pct"])
+                ),
+                style={"text-align": "center", "padding": "6px 8px",
+                       "background-color": bg, "border-bottom": "1px solid #1E2D4F"}
+            ) for ma in MOVING_AVERAGES],
+        ]))
+
+    return html.Div([
+        dbc.Table(
+            [header, html.Tbody(rows)],
+            bordered=False, hover=False, size="sm",
+            style={"margin-bottom": "0", "border-collapse": "collapse"},
+        )
+    ], style={
+        "border-radius": "12px",
+        "overflow": "hidden",
+        "border": f"1px solid {CDI_MINT}33",
+    })
+
+
+# ── Tarjetas de Indicadores (derecha) ────────────────────────────
+def indicator_card(ticker, label, value_node, change_node=None):
+    return html.Div([
+        # Encabezado de tarjeta
+        html.Div([
+            html.Span(ticker, style={
+                "color": CDI_MINT, "font-weight": "700",
+                "font-size": "14px", "letter-spacing": "1px",
+            }),
+            html.Span(label, style={
+                "color": CDI_GRAY, "font-size": "11px",
+                "margin-left": "8px",
+            }),
+        ], style={"margin-bottom": "10px"}),
+
+        # Valor + cambio
+        html.Div([
+            value_node,
+            html.Span(change_node or "", style={"margin-left": "8px"}),
+        ], style={"display": "flex", "align-items": "center"}),
+
+    ], style={
+        "background-color": CDI_NAVY2,
+        "border": f"1px solid {CDI_MINT}33",
+        "border-radius": "12px",
+        "padding": "14px 16px",
+        "height": "100%",
+    })
+
+
+def build_indicators_cards(ind):
+    def chg_span(chg, chg_p):
+        sign  = "+" if chg > 0 else ""
+        color = SEM_RED if chg > 0 else SEM_GREEN
+        return html.Span(f"{sign}{chg_p}%",
+                         style={"color": color, "font-size": "11px", "font-weight": "600"})
+
+    # NYMO
+    nymo_card = indicator_card(
+        "NYMO", "McClellan Osc.",
+        pending_badge(),
+    )
+
+    # VIX
     if "VIX" in ind:
         v = ind["VIX"]
-        sign = "+" if v["chg"] > 0 else ""
-        rows.append(html.Tr([
-            html.Td("VIX",                   style={**TD_STYLE, "font-weight": "bold", "color": "#FFD600"}),
-            html.Td("Volatilidad implícita",  style={**TD_STYLE, "color": "#AAAAAA"}),
-            html.Td(value_badge(v["value"], vix_color(v["value"])),
-                    style={"text-align": "center", "padding": "5px 8px"}),
-            html.Td(f"{sign}{v['chg_p']}%",  style={**TD_RIGHT, "color": COLOR_RED if v["chg"] > 0 else COLOR_GREEN}),
-        ]))
+        vix_card = indicator_card(
+            "VIX", "Volatilidad implícita",
+            badge(str(v["value"]), vix_color(v["value"])),
+            chg_span(v["chg"], v["chg_p"]),
+        )
     else:
-        rows.append(html.Tr([
-            html.Td("VIX",  style={**TD_STYLE, "font-weight": "bold", "color": "#FFD600"}),
-            html.Td("Volatilidad implícita", style={**TD_STYLE, "color": "#AAAAAA"}),
-            html.Td(pending_badge(), style={"text-align": "center", "padding": "5px 8px"}),
-            html.Td("—", style={**TD_RIGHT, "color": "#555"}),
-        ]))
+        vix_card = indicator_card("VIX", "Volatilidad implícita", pending_badge())
 
-    # ── VVIX ────────────────────────────────────────────────────
+    # VVIX
     if "VVIX" in ind:
         v = ind["VVIX"]
-        sign = "+" if v["chg"] > 0 else ""
-        rows.append(html.Tr([
-            html.Td("VVIX",                  style={**TD_STYLE, "font-weight": "bold", "color": "#FFD600"}),
-            html.Td("Vol. del VIX",          style={**TD_STYLE, "color": "#AAAAAA"}),
-            html.Td(value_badge(v["value"], vvix_color(v["value"])),
-                    style={"text-align": "center", "padding": "5px 8px"}),
-            html.Td(f"{sign}{v['chg_p']}%",  style={**TD_RIGHT, "color": COLOR_RED if v["chg"] > 0 else COLOR_GREEN}),
-        ]))
+        vvix_card = indicator_card(
+            "VVIX", "Vol. del VIX",
+            badge(str(v["value"]), vvix_color(v["value"])),
+            chg_span(v["chg"], v["chg_p"]),
+        )
     else:
-        rows.append(html.Tr([
-            html.Td("VVIX", style={**TD_STYLE, "font-weight": "bold", "color": "#FFD600"}),
-            html.Td("Vol. del VIX", style={**TD_STYLE, "color": "#AAAAAA"}),
-            html.Td(pending_badge(), style={"text-align": "center", "padding": "5px 8px"}),
-            html.Td("—", style={**TD_RIGHT, "color": "#555"}),
-        ]))
+        vvix_card = indicator_card("VVIX", "Vol. del VIX", pending_badge())
 
-    # ── SKEW ────────────────────────────────────────────────────
+    # SKEW
     if "SKEW" in ind:
         v = ind["SKEW"]
-        sign = "+" if v["chg"] > 0 else ""
-        rows.append(html.Tr([
-            html.Td("SKEW",              style={**TD_STYLE, "font-weight": "bold", "color": "#FFD600"}),
-            html.Td("Riesgo de cola",    style={**TD_STYLE, "color": "#AAAAAA"}),
-            html.Td(value_badge(v["value"], skew_color(v["value"])),
-                    style={"text-align": "center", "padding": "5px 8px"}),
-            html.Td(f"{sign}{v['chg_p']}%", style={**TD_RIGHT, "color": COLOR_RED if v["chg"] > 0 else COLOR_GREEN}),
-        ]))
+        skew_card = indicator_card(
+            "SKEW", "Riesgo de cola",
+            badge(str(v["value"]), skew_color(v["value"])),
+            chg_span(v["chg"], v["chg_p"]),
+        )
     else:
-        rows.append(html.Tr([
-            html.Td("SKEW", style={**TD_STYLE, "font-weight": "bold", "color": "#FFD600"}),
-            html.Td("Riesgo de cola", style={**TD_STYLE, "color": "#AAAAAA"}),
-            html.Td(pending_badge(), style={"text-align": "center", "padding": "5px 8px"}),
-            html.Td("—", style={**TD_RIGHT, "color": "#555"}),
-        ]))
+        skew_card = indicator_card("SKEW", "Riesgo de cola", pending_badge())
 
-    # ── Vol. Realizada 21d ───────────────────────────────────────
+    # RV 21d
     if "RV21" in ind:
         v = ind["RV21"]["value"]
-        rows.append(html.Tr([
-            html.Td("RV 21d",            style={**TD_STYLE, "font-weight": "bold", "color": "#FFD600"}),
-            html.Td("Vol. Realizada 21d", style={**TD_STYLE, "color": "#AAAAAA"}),
-            html.Td(value_badge(f"{v}%", rv_color(v)),
-                    style={"text-align": "center", "padding": "5px 8px"}),
-            html.Td("SPX",               style={**TD_RIGHT, "color": "#555"}),
-        ]))
+        rv_card = indicator_card(
+            "RV 21d", "Vol. Realizada SPX",
+            badge(f"{v}%", rv_color(v)),
+        )
     else:
-        rows.append(html.Tr([
-            html.Td("RV 21d", style={**TD_STYLE, "font-weight": "bold", "color": "#FFD600"}),
-            html.Td("Vol. Realizada 21d", style={**TD_STYLE, "color": "#AAAAAA"}),
-            html.Td(pending_badge(), style={"text-align": "center", "padding": "5px 8px"}),
-            html.Td("—", style={**TD_RIGHT, "color": "#555"}),
-        ]))
+        rv_card = indicator_card("RV 21d", "Vol. Realizada SPX", pending_badge())
 
-    # ── Gamma GEX ───────────────────────────────────────────────
-    rows.append(html.Tr([
-        html.Td("GEX",              style={**TD_STYLE, "font-weight": "bold", "color": "#FFD600"}),
-        html.Td("Gamma Exposure",   style={**TD_STYLE, "color": "#AAAAAA"}),
-        html.Td(pending_badge(),    style={"text-align": "center", "padding": "5px 8px"}),
-        html.Td("—",                style={**TD_RIGHT, "color": "#555"}),
-    ]))
+    # GEX
+    gex_card  = indicator_card("GEX",  "Gamma Exposure",          pending_badge())
+    vpvr_card = indicator_card("VPVR", "Perfil Vol. Rango Visible", pending_badge())
 
-    # ── Perfil de Volumen ────────────────────────────────────────
-    rows.append(html.Tr([
-        html.Td("VPVR",                       style={**TD_STYLE, "font-weight": "bold", "color": "#FFD600"}),
-        html.Td("Perfil Vol. Rango Visible",  style={**TD_STYLE, "color": "#AAAAAA"}),
-        html.Td(pending_badge(),              style={"text-align": "center", "padding": "5px 8px"}),
-        html.Td("—",                          style={**TD_RIGHT, "color": "#555"}),
-    ]))
-
-    header = html.Thead(html.Tr([
-        html.Th("Ticker",       style=TH_STYLE),
-        html.Th("Indicador",    style=TH_STYLE),
-        html.Th("Valor",        style={**TH_STYLE, "text-align": "center"}),
-        html.Th("Cambio",       style={**TH_STYLE, "text-align": "right"}),
-    ]))
-
-    return dbc.Table(
-        [header, html.Tbody(rows)],
-        bordered=False, hover=True, size="sm",
-        style={"font-size": "12px", "margin-bottom": "0"},
-    )
+    return html.Div([
+        dbc.Row([
+            dbc.Col(nymo_card,  xs=6, className="mb-3"),
+            dbc.Col(vix_card,   xs=6, className="mb-3"),
+        ], className="g-2"),
+        dbc.Row([
+            dbc.Col(vvix_card,  xs=6, className="mb-3"),
+            dbc.Col(skew_card,  xs=6, className="mb-3"),
+        ], className="g-2"),
+        dbc.Row([
+            dbc.Col(rv_card,    xs=6, className="mb-3"),
+            dbc.Col(gex_card,   xs=6, className="mb-3"),
+        ], className="g-2"),
+        dbc.Row([
+            dbc.Col(vpvr_card,  xs=12, className="mb-3"),
+        ], className="g-2"),
+    ])
 
 
-# ── Layout ────────────────────────────────────────────────────────
-app.layout = dbc.Container([
+# ── Layout principal ─────────────────────────────────────────────
+app.layout = html.Div([
+    dbc.Container([
 
-    # Título
-    html.Div([
-        html.H5("Semáforo de Mercado", className="text-white mb-1",
-                style={"letter-spacing": "2px"}),
-        html.P("Índices principales NYSE · Indicadores de Mercado",
-               className="text-secondary mb-0", style={"font-size": "12px"}),
-    ], className="text-center mt-4 mb-3"),
+        # Header
+        html.Div([
+            html.Div([
+                html.Span("CLUB ", style={
+                    "color": CDI_MINT, "font-size": "26px",
+                    "font-weight": "900", "letter-spacing": "3px",
+                }),
+                html.Span("DE INVERSIONISTAS", style={
+                    "color": CDI_WHITE, "font-size": "14px",
+                    "font-weight": "700", "letter-spacing": "3px",
+                    "vertical-align": "middle",
+                }),
+            ], style={"margin-bottom": "4px"}),
+            html.P("Semáforo de Mercado · NYSE", style={
+                "color": CDI_GRAY, "font-size": "12px",
+                "margin": "0", "letter-spacing": "2px",
+            }),
+        ], className="text-center py-4"),
 
-    # Leyenda
-    html.Div([
-        html.Span("● > +0.5%",       style={"color": COLOR_GREEN,  "font-size": "12px", "margin-right": "14px"}),
-        html.Span("● -0.5% a +0.5%", style={"color": COLOR_ORANGE, "font-size": "12px", "margin-right": "14px"}),
-        html.Span("● < -0.5%",       style={"color": COLOR_RED,    "font-size": "12px"}),
-    ], className="text-center mb-4"),
+        # Leyenda
+        html.Div([
+            html.Span("● > +0.5%",       style={"color": SEM_GREEN,  "font-size": "12px", "margin-right": "16px"}),
+            html.Span("● -0.5% a +0.5%", style={"color": SEM_ORANGE, "font-size": "12px", "margin-right": "16px"}),
+            html.Span("● < -0.5%",       style={"color": SEM_RED,    "font-size": "12px"}),
+        ], className="text-center mb-4"),
 
-    # ── Layout 50 / 50 ──────────────────────────────────────────
-    dbc.Row([
+        # Layout 50 / 50
+        dbc.Row([
 
-        # Columna izquierda — Índices (50%)
-        dbc.Col([
-            html.H6("Índices del Mercado", className="text-secondary mb-2",
-                    style={"font-size": "11px", "letter-spacing": "1px", "text-transform": "uppercase"}),
-            html.Div(id="indices-content"),
-        ], xs=12, lg=6, className="pe-lg-3"),
+            # Izquierda — Índices
+            dbc.Col([
+                html.P("ÍNDICES DEL MERCADO", style={
+                    "color": CDI_MINT, "font-size": "11px",
+                    "font-weight": "700", "letter-spacing": "2px",
+                    "margin-bottom": "10px",
+                }),
+                html.Div(id="indices-content"),
+            ], xs=12, lg=6, className="pe-lg-3 mb-4"),
 
-        # Columna derecha — Indicadores (50%)
-        dbc.Col([
-            html.H6("Indicadores de Sentimiento", className="text-secondary mb-2",
-                    style={"font-size": "11px", "letter-spacing": "1px", "text-transform": "uppercase"}),
-            html.Div(id="indicators-content"),
-        ], xs=12, lg=6, className="ps-lg-3"),
+            # Derecha — Indicadores
+            dbc.Col([
+                html.P("INDICADORES DE SENTIMIENTO", style={
+                    "color": CDI_MINT, "font-size": "11px",
+                    "font-weight": "700", "letter-spacing": "2px",
+                    "margin-bottom": "10px",
+                }),
+                html.Div(id="indicators-content"),
+            ], xs=12, lg=6, className="ps-lg-3 mb-4"),
 
-    ], className="g-0"),
+        ]),
 
-    # Actualización cada 60 segundos
-    dcc.Interval(id="interval", interval=60 * 1000, n_intervals=0),
+        # Footer
+        html.P(
+            "Datos con retraso de 15 min. Fuente: Yahoo Finance.",
+            className="text-center mt-2 pb-4",
+            style={"color": CDI_GRAY, "font-size": "11px"},
+        ),
 
-    html.P("Datos con retraso de 15 min. Fuente: Yahoo Finance.",
-           className="text-center text-secondary mt-4",
-           style={"font-size": "11px"}),
+        dcc.Interval(id="interval", interval=60 * 1000, n_intervals=0),
 
-], fluid=True, style={"background-color": "#0d0d1a", "min-height": "100vh", "padding": "20px"})
+    ], fluid=True),
+], style={"background-color": CDI_NAVY, "min-height": "100vh", "font-family": "'Segoe UI', sans-serif"})
 
 
+# ── Callback ─────────────────────────────────────────────────────
 @app.callback(
     Output("indices-content",    "children"),
     Output("indicators-content", "children"),
@@ -305,11 +315,11 @@ def update_dashboard(n):
     try:
         market = get_market_data()
         ind    = get_indicators_data()
-        return build_indices_table(market), build_indicators_table(ind)
+        return build_indices_table(market), build_indicators_cards(ind)
     except Exception as e:
         import traceback
         traceback.print_exc()
-        err = html.P(f"Error: {str(e)}", style={"color": "red", "font-size": "12px"})
+        err = html.P(f"Error: {str(e)}", style={"color": SEM_RED, "font-size": "12px"})
         return err, err
 
 
