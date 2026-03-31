@@ -100,11 +100,23 @@ def info_icon(key):
     return html.Span([
         html.Span("ℹ", className="cdi-tip-icon"),
         html.Div([
-            html.P(t.get("desc", ""), className="cdi-tip-desc"),
+            html.Span(t.get("desc", ""), style={
+                "color": "#FFFFFF",
+                "font-size": "12px",
+                "line-height": "1.55",
+                "margin-bottom": "10px",
+                "display": "block",
+            }),
             html.A("Ver video explicativo →",
                    href=t.get("url", "#"),
                    target="_blank",
-                   className="cdi-tip-link"),
+                   style={
+                       "color": "#00E5A0",
+                       "font-size": "11px",
+                       "font-weight": "700",
+                       "text-decoration": "none",
+                       "display": "block",
+                   }),
         ], className="cdi-tip-box"),
     ], className="cdi-tip-wrap")
 
