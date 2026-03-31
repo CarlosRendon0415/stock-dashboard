@@ -126,7 +126,7 @@ def badge(text, bg, text_color=CDI_WHITE):
 
 
 def pending_badge():
-    return badge("⏳ Pendiente", "#1E2D4F", CDI_GRAY)
+    return badge("⏳ Próximamente", "#1E2D4F", CDI_GRAY)
 
 
 def vix_color(v):
@@ -164,7 +164,7 @@ def build_indices_table(data):
             html.Td(name, style={**TD, "background-color": bg,
                                  "color": CDI_MINT, "font-weight": "700"}),
             html.Td(INDEX_NAMES.get(name, ""), style={**TD_MUTED, "background-color": bg}),
-            html.Td(f"USD {values['price']:,.2f}",
+            html.Td(f" {values['price']:,.2f}",
                     style={**TD_RIGHT, "background-color": bg, "font-weight": "600"}),
             *[html.Td(
                 badge(("+" if values[ma]["pct"] > 0 else "") + f"{values[ma]['pct']}%",
@@ -272,14 +272,14 @@ app.layout = html.Div([
 
         html.Div([
             html.Div([
-                html.Span("Dashboard financiero El Club de inversionistas", style={
+                html.Span("Dashboard financiero El Club de Inversionistas", style={
                     "color": CDI_MINT, "font-size": "26px",
                     "font-weight": "900", "letter-spacing": "3px",
                 }),
             ], style={"margin-bottom": "4px"}),
             html.P("Hyenuk Chu", style={
-                "color": CDI_GRAY, "font-size": "12px",
-                "margin": "0", "letter-spacing": "2px",
+                "color": CDI_GRAY, "font-size": "16px",
+                "margin": "0", "letter-spacing": "1px",
             }),
         ], className="text-center py-4"),
 
