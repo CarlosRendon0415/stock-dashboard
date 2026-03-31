@@ -157,7 +157,7 @@ def rv_color(v):
 def build_indices_table(data):
     def ma_th(ma):
         return html.Th(
-            html.Span([ma, info_icon(f"info-{ma}")]),
+            html.Span([ma, info_icon(ma)]),
             style={**TH, "text-align": "center"}
         )
 
@@ -203,7 +203,7 @@ def indicator_card(key, ticker, label, value_node, change_node=None):
                 "color": CDI_MINT, "font-weight": "700",
                 "font-size": "14px", "letter-spacing": "1px",
             }),
-            info_icon(f"info-{key}"),
+            info_icon(key),
             html.Span(label, style={
                 "color": CDI_GRAY, "font-size": "11px", "margin-left": "8px",
             }),
