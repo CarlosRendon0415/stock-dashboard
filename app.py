@@ -2,7 +2,7 @@ import dash
 from dash import html, dcc
 from dash.dependencies import Input, Output
 import dash_bootstrap_components as dbc
-from data import get_market_data
+from data import get_market_data, get_indicators_data
 
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.DARKLY])
 app.title = "Semáforo de Mercado"
@@ -18,9 +18,14 @@ INDEX_NAMES = {
 }
 
 # ── Colores semáforo ─────────────────────────────────────────────
-COLOR_GREEN  = "#6B8E23"   # verde oliva  → > +0.5%
-COLOR_ORANGE = "#FF6D00"   # naranja      → entre -0.5% y +0.5%
-COLOR_RED    = "#FF1744"   # rojo         → < -0.5%
+COLOR_GREEN  = "#6B8E23"
+COLOR_ORANGE = "#FF6D00"
+COLOR_RED    = "#FF1744"
+COLOR_GRAY   = "#555555"
+
+TH_STYLE = {"color": "#888", "font-size": "11px", "border-bottom": "1px solid #333", "padding": "6px 10px"}
+TD_STYLE = {"color": "#CCCCCC", "font-size": "12px", "padding": "6px 10px"}
+TD_RIGHT = {**TD_STYLE, "text-align": "right"}
 
 
 def semaphore_color(pct):
@@ -42,152 +47,244 @@ def semaphore_badge(pct):
             "color": "white",
             "padding": "2px 8px",
             "border-radius": "10px",
-            "font-size": "12px",
+            "font-size": "11px",
             "font-weight": "bold",
             "white-space": "nowrap",
         }
     )
 
 
-def build_table(data):
+def pending_badge():
+    return html.Span("⏳ Pendiente", style={
+        "background-color": "#333",
+        "color": "#777",
+        "padding": "2px 8px",
+        "border-radius": "10px",
+        "font-size": "11px",
+        "font-weight": "bold",
+    })
+
+
+# ── Tabla izquierda: Índices ──────────────────────────────────────
+def build_indices_table(data):
     header = html.Thead(html.Tr([
-        html.Th("Índice",  style={"width": "60px"}),
-        html.Th("Nombre"),
-        html.Th("Precio (USD)", style={"text-align": "right"}),
-        html.Th("DMA5",    style={"text-align": "center"}),
-        html.Th("EMA8",    style={"text-align": "center"}),
-        html.Th("EMA21",   style={"text-align": "center"}),
-        html.Th("DMA50",   style={"text-align": "center"}),
-        html.Th("DMA200",  style={"text-align": "center"}),
-    ], style={"font-size": "12px", "color": "#888"}))
+        html.Th("Índice",       style=TH_STYLE),
+        html.Th("Nombre",       style=TH_STYLE),
+        html.Th("Precio (USD)", style={**TH_STYLE, "text-align": "right"}),
+        html.Th("DMA5",         style={**TH_STYLE, "text-align": "center"}),
+        html.Th("EMA8",         style={**TH_STYLE, "text-align": "center"}),
+        html.Th("EMA21",        style={**TH_STYLE, "text-align": "center"}),
+        html.Th("DMA50",        style={**TH_STYLE, "text-align": "center"}),
+        html.Th("DMA200",       style={**TH_STYLE, "text-align": "center"}),
+    ]))
 
     rows = []
     for name, values in data.items():
         rows.append(html.Tr([
-            html.Td(name, style={"font-weight": "bold", "color": "#FFD600", "font-size": "13px"}),
-            html.Td(INDEX_NAMES.get(name, ""), style={"color": "#AAAAAA", "font-size": "12px"}),
-            html.Td(
-                f"USD {values['price']:,.2f}",
-                style={"text-align": "right", "color": "white", "font-size": "13px"}
-            ),
+            html.Td(name, style={**TD_STYLE, "font-weight": "bold", "color": "#FFD600"}),
+            html.Td(INDEX_NAMES.get(name, ""), style={**TD_STYLE, "color": "#AAAAAA"}),
+            html.Td(f"USD {values['price']:,.2f}", style=TD_RIGHT),
             *[html.Td(semaphore_badge(values[ma]["pct"]),
-                      style={"text-align": "center", "padding": "6px 8px"})
+                      style={"text-align": "center", "padding": "5px 8px"})
               for ma in MOVING_AVERAGES],
         ]))
 
     return dbc.Table(
         [header, html.Tbody(rows)],
-        bordered=False,
-        hover=True,
-        size="sm",
-        style={"font-size": "13px"},
+        bordered=False, hover=True, size="sm",
+        style={"font-size": "12px", "margin-bottom": "0"},
     )
 
 
-def build_nymo_pending():
-    """Sección NYMO temporal mientras se integra la API de pago."""
-    return dbc.Row([
+# ── Tabla derecha: Indicadores ────────────────────────────────────
+def vix_color(v):
+    if v < 15:    return COLOR_GREEN
+    elif v < 25:  return COLOR_ORANGE
+    else:         return COLOR_RED
 
-        # ── Semáforo (izquierda) ─────────────────────────────────
-        dbc.Col(
-            html.Div([
-                html.Div("—", style={
-                    "font-size": "48px",
-                    "font-weight": "bold",
-                    "color": "#555",
-                    "line-height": "1",
-                }),
-                html.Span("Pendiente", style={
-                    "background-color": "#444",
-                    "color": "#aaa",
-                    "padding": "2px 10px",
-                    "border-radius": "10px",
-                    "font-size": "11px",
-                    "font-weight": "bold",
-                    "display": "inline-block",
-                    "margin-top": "6px",
-                }),
-            ], className="text-center"),
-            xs=12, sm=4,
-        ),
+def vvix_color(v):
+    if v < 90:    return COLOR_GREEN
+    elif v < 110: return COLOR_ORANGE
+    else:         return COLOR_RED
 
-        # ── Tabla de detalle (derecha) ───────────────────────────
-        dbc.Col(
-            dbc.Table([
-                html.Tbody([
-                    html.Tr([
-                        html.Td("NYMO",         style={"color": "#888", "font-size": "12px"}),
-                        html.Td("—",            style={"color": "#555", "font-size": "12px", "text-align": "right"}),
-                    ]),
-                    html.Tr([
-                        html.Td("Net Advances", style={"color": "#888", "font-size": "12px"}),
-                        html.Td("—",            style={"color": "#555", "font-size": "12px", "text-align": "right"}),
-                    ]),
-                    html.Tr([
-                        html.Td("EMA 19",       style={"color": "#888", "font-size": "12px"}),
-                        html.Td("—",            style={"color": "#555", "font-size": "12px", "text-align": "right"}),
-                    ]),
-                    html.Tr([
-                        html.Td("EMA 39",       style={"color": "#888", "font-size": "12px"}),
-                        html.Td("—",            style={"color": "#555", "font-size": "12px", "text-align": "right"}),
-                    ]),
-                    html.Tr([
-                        html.Td("Sobrecompra",  style={"color": COLOR_RED,   "font-size": "11px"}),
-                        html.Td("> +60",        style={"color": COLOR_RED,   "font-size": "11px", "text-align": "right"}),
-                    ]),
-                    html.Tr([
-                        html.Td("Sobreventa",   style={"color": COLOR_GREEN, "font-size": "11px"}),
-                        html.Td("< -60",        style={"color": COLOR_GREEN, "font-size": "11px", "text-align": "right"}),
-                    ]),
-                ])
-            ], bordered=False, size="sm"),
-            xs=12, sm=8,
-        ),
+def skew_color(v):
+    if v < 120:   return COLOR_GREEN
+    elif v < 140: return COLOR_ORANGE
+    else:         return COLOR_RED
 
-    ], className="align-items-center", style={"max-width": "480px", "margin": "0 auto"})
+def rv_color(v):
+    if v < 12:    return COLOR_GREEN
+    elif v < 20:  return COLOR_ORANGE
+    else:         return COLOR_RED
+
+
+def value_badge(value, color):
+    return html.Span(
+        f"{value}",
+        style={
+            "background-color": color,
+            "color": "white",
+            "padding": "2px 8px",
+            "border-radius": "10px",
+            "font-size": "11px",
+            "font-weight": "bold",
+            "white-space": "nowrap",
+        }
+    )
+
+
+def build_indicators_table(ind):
+    rows = []
+
+    # ── NYMO ────────────────────────────────────────────────────
+    rows.append(html.Tr([
+        html.Td("NYMO",             style={**TD_STYLE, "font-weight": "bold", "color": "#FFD600"}),
+        html.Td("McClellan Osc.",   style={**TD_STYLE, "color": "#AAAAAA"}),
+        html.Td(pending_badge(),    style={"text-align": "center", "padding": "5px 8px"}),
+        html.Td("—",                style={**TD_RIGHT, "color": "#555"}),
+    ]))
+
+    # ── VIX ─────────────────────────────────────────────────────
+    if "VIX" in ind:
+        v = ind["VIX"]
+        sign = "+" if v["chg"] > 0 else ""
+        rows.append(html.Tr([
+            html.Td("VIX",                   style={**TD_STYLE, "font-weight": "bold", "color": "#FFD600"}),
+            html.Td("Volatilidad implícita",  style={**TD_STYLE, "color": "#AAAAAA"}),
+            html.Td(value_badge(v["value"], vix_color(v["value"])),
+                    style={"text-align": "center", "padding": "5px 8px"}),
+            html.Td(f"{sign}{v['chg_p']}%",  style={**TD_RIGHT, "color": COLOR_RED if v["chg"] > 0 else COLOR_GREEN}),
+        ]))
+    else:
+        rows.append(html.Tr([
+            html.Td("VIX",  style={**TD_STYLE, "font-weight": "bold", "color": "#FFD600"}),
+            html.Td("Volatilidad implícita", style={**TD_STYLE, "color": "#AAAAAA"}),
+            html.Td(pending_badge(), style={"text-align": "center", "padding": "5px 8px"}),
+            html.Td("—", style={**TD_RIGHT, "color": "#555"}),
+        ]))
+
+    # ── VVIX ────────────────────────────────────────────────────
+    if "VVIX" in ind:
+        v = ind["VVIX"]
+        sign = "+" if v["chg"] > 0 else ""
+        rows.append(html.Tr([
+            html.Td("VVIX",                  style={**TD_STYLE, "font-weight": "bold", "color": "#FFD600"}),
+            html.Td("Vol. del VIX",          style={**TD_STYLE, "color": "#AAAAAA"}),
+            html.Td(value_badge(v["value"], vvix_color(v["value"])),
+                    style={"text-align": "center", "padding": "5px 8px"}),
+            html.Td(f"{sign}{v['chg_p']}%",  style={**TD_RIGHT, "color": COLOR_RED if v["chg"] > 0 else COLOR_GREEN}),
+        ]))
+    else:
+        rows.append(html.Tr([
+            html.Td("VVIX", style={**TD_STYLE, "font-weight": "bold", "color": "#FFD600"}),
+            html.Td("Vol. del VIX", style={**TD_STYLE, "color": "#AAAAAA"}),
+            html.Td(pending_badge(), style={"text-align": "center", "padding": "5px 8px"}),
+            html.Td("—", style={**TD_RIGHT, "color": "#555"}),
+        ]))
+
+    # ── SKEW ────────────────────────────────────────────────────
+    if "SKEW" in ind:
+        v = ind["SKEW"]
+        sign = "+" if v["chg"] > 0 else ""
+        rows.append(html.Tr([
+            html.Td("SKEW",              style={**TD_STYLE, "font-weight": "bold", "color": "#FFD600"}),
+            html.Td("Riesgo de cola",    style={**TD_STYLE, "color": "#AAAAAA"}),
+            html.Td(value_badge(v["value"], skew_color(v["value"])),
+                    style={"text-align": "center", "padding": "5px 8px"}),
+            html.Td(f"{sign}{v['chg_p']}%", style={**TD_RIGHT, "color": COLOR_RED if v["chg"] > 0 else COLOR_GREEN}),
+        ]))
+    else:
+        rows.append(html.Tr([
+            html.Td("SKEW", style={**TD_STYLE, "font-weight": "bold", "color": "#FFD600"}),
+            html.Td("Riesgo de cola", style={**TD_STYLE, "color": "#AAAAAA"}),
+            html.Td(pending_badge(), style={"text-align": "center", "padding": "5px 8px"}),
+            html.Td("—", style={**TD_RIGHT, "color": "#555"}),
+        ]))
+
+    # ── Vol. Realizada 21d ───────────────────────────────────────
+    if "RV21" in ind:
+        v = ind["RV21"]["value"]
+        rows.append(html.Tr([
+            html.Td("RV 21d",            style={**TD_STYLE, "font-weight": "bold", "color": "#FFD600"}),
+            html.Td("Vol. Realizada 21d", style={**TD_STYLE, "color": "#AAAAAA"}),
+            html.Td(value_badge(f"{v}%", rv_color(v)),
+                    style={"text-align": "center", "padding": "5px 8px"}),
+            html.Td("SPX",               style={**TD_RIGHT, "color": "#555"}),
+        ]))
+    else:
+        rows.append(html.Tr([
+            html.Td("RV 21d", style={**TD_STYLE, "font-weight": "bold", "color": "#FFD600"}),
+            html.Td("Vol. Realizada 21d", style={**TD_STYLE, "color": "#AAAAAA"}),
+            html.Td(pending_badge(), style={"text-align": "center", "padding": "5px 8px"}),
+            html.Td("—", style={**TD_RIGHT, "color": "#555"}),
+        ]))
+
+    # ── Gamma GEX ───────────────────────────────────────────────
+    rows.append(html.Tr([
+        html.Td("GEX",              style={**TD_STYLE, "font-weight": "bold", "color": "#FFD600"}),
+        html.Td("Gamma Exposure",   style={**TD_STYLE, "color": "#AAAAAA"}),
+        html.Td(pending_badge(),    style={"text-align": "center", "padding": "5px 8px"}),
+        html.Td("—",                style={**TD_RIGHT, "color": "#555"}),
+    ]))
+
+    # ── Perfil de Volumen ────────────────────────────────────────
+    rows.append(html.Tr([
+        html.Td("VPVR",                       style={**TD_STYLE, "font-weight": "bold", "color": "#FFD600"}),
+        html.Td("Perfil Vol. Rango Visible",  style={**TD_STYLE, "color": "#AAAAAA"}),
+        html.Td(pending_badge(),              style={"text-align": "center", "padding": "5px 8px"}),
+        html.Td("—",                          style={**TD_RIGHT, "color": "#555"}),
+    ]))
+
+    header = html.Thead(html.Tr([
+        html.Th("Ticker",       style=TH_STYLE),
+        html.Th("Indicador",    style=TH_STYLE),
+        html.Th("Valor",        style={**TH_STYLE, "text-align": "center"}),
+        html.Th("Cambio",       style={**TH_STYLE, "text-align": "right"}),
+    ]))
+
+    return dbc.Table(
+        [header, html.Tbody(rows)],
+        bordered=False, hover=True, size="sm",
+        style={"font-size": "12px", "margin-bottom": "0"},
+    )
 
 
 # ── Layout ────────────────────────────────────────────────────────
 app.layout = dbc.Container([
 
+    # Título
     html.Div([
         html.H5("Semáforo de Mercado", className="text-white mb-1",
                 style={"letter-spacing": "2px"}),
-        html.P("Índices principales NYSE", className="text-secondary mb-0",
-               style={"font-size": "12px"}),
+        html.P("Índices principales NYSE · Indicadores de Mercado",
+               className="text-secondary mb-0", style={"font-size": "12px"}),
     ], className="text-center mt-4 mb-3"),
 
-    # Leyenda semáforo
+    # Leyenda
     html.Div([
-        html.Span("● > +0.5%",            style={"color": COLOR_GREEN,  "font-size": "12px", "margin-right": "14px"}),
-        html.Span("● -0.5% a +0.5%",      style={"color": COLOR_ORANGE, "font-size": "12px", "margin-right": "14px"}),
-        html.Span("● < -0.5%",            style={"color": COLOR_RED,    "font-size": "12px"}),
-    ], className="text-center mb-3"),
+        html.Span("● > +0.5%",       style={"color": COLOR_GREEN,  "font-size": "12px", "margin-right": "14px"}),
+        html.Span("● -0.5% a +0.5%", style={"color": COLOR_ORANGE, "font-size": "12px", "margin-right": "14px"}),
+        html.Span("● < -0.5%",       style={"color": COLOR_RED,    "font-size": "12px"}),
+    ], className="text-center mb-4"),
 
-    # Tabla índices
-    html.Div(id="dashboard-content"),
+    # ── Layout 50 / 50 ──────────────────────────────────────────
+    dbc.Row([
 
-    html.Hr(style={"border-color": "#333", "margin": "24px 0"}),
+        # Columna izquierda — Índices (50%)
+        dbc.Col([
+            html.H6("Índices del Mercado", className="text-secondary mb-2",
+                    style={"font-size": "11px", "letter-spacing": "1px", "text-transform": "uppercase"}),
+            html.Div(id="indices-content"),
+        ], xs=12, lg=6, className="pe-lg-3"),
 
-    # NYMO
-    html.H6("McClellan Oscillator — NYMO", className="text-secondary text-center mb-3",
-            style={"letter-spacing": "1px", "font-size": "12px"}),
+        # Columna derecha — Indicadores (50%)
+        dbc.Col([
+            html.H6("Indicadores de Sentimiento", className="text-secondary mb-2",
+                    style={"font-size": "11px", "letter-spacing": "1px", "text-transform": "uppercase"}),
+            html.Div(id="indicators-content"),
+        ], xs=12, lg=6, className="ps-lg-3"),
 
-    # Recuadro "Pendiente"
-    html.Div(
-        html.Div([
-            html.P("⏳ Pendiente a la API de pago",
-                   style={"color": "#888", "font-size": "13px", "margin": "0"}),
-        ], style={
-            "border": "1px dashed #444",
-            "border-radius": "8px",
-            "padding": "12px 20px",
-            "display": "inline-block",
-        }),
-        className="text-center mb-3",
-    ),
-
-    build_nymo_pending(),
+    ], className="g-0"),
 
     # Actualización cada 60 segundos
     dcc.Interval(id="interval", interval=60 * 1000, n_intervals=0),
@@ -200,17 +297,20 @@ app.layout = dbc.Container([
 
 
 @app.callback(
-    Output("dashboard-content", "children"),
+    Output("indices-content",    "children"),
+    Output("indicators-content", "children"),
     Input("interval", "n_intervals"),
 )
 def update_dashboard(n):
     try:
-        data = get_market_data()
-        return build_table(data)
+        market = get_market_data()
+        ind    = get_indicators_data()
+        return build_indices_table(market), build_indicators_table(ind)
     except Exception as e:
         import traceback
         traceback.print_exc()
-        return html.P(f"Error al cargar datos: {str(e)}", style={"color": "red"})
+        err = html.P(f"Error: {str(e)}", style={"color": "red", "font-size": "12px"})
+        return err, err
 
 
 if __name__ == "__main__":

@@ -1,5 +1,6 @@
 import yfinance as yf
 import pandas as pd
+import numpy as np
 
 INDICES = {
     "SPX": "^GSPC",
@@ -12,7 +13,6 @@ INDICES = {
 def get_market_data():
     results = {}
 
-    # Una sola llamada para todos los índices (evita rate limiting)
     tickers = list(INDICES.values())
     raw = yf.download(tickers, period="250d", progress=False, auto_adjust=True)
 
@@ -54,51 +54,61 @@ def get_market_data():
     return results
 
 
-def get_nymo_data():
+def get_indicators_data():
     """
-    Calcula el McClellan Oscillator (NYMO) con la fórmula oficial:
-      Net Advances  = diferencia diaria de ^NYAD (NYSE Advance-Decline Line)
-      EMA19 = EMA(Net Advances, span=19)
-      EMA39 = EMA(Net Advances, span=39)
-      NYMO  = EMA19 - EMA39
+    Obtiene VIX, VVIX, SKEW y calcula Volatilidad Realizada (21d) del SPX.
+    NYMO, Gamma GEX y Perfil de Volumen quedan pendientes a API de pago.
     """
+    results = {}
+
+    # ── VIX, VVIX, SKEW ─────────────────────────────────────────
+    TICKERS = {
+        "VIX":  "^VIX",
+        "VVIX": "^VVIX",
+        "SKEW": "^SKEW",
+    }
+
     try:
-        nyad = yf.Ticker("^NYAD").history(period="150d")["Close"].dropna()
+        raw = yf.download(
+            list(TICKERS.values()),
+            period="30d",
+            progress=False,
+            auto_adjust=True,
+        )
+        close_all = raw["Close"]
 
-        if len(nyad) < 42:
-            return None
-
-        # La diferencia diaria del acumulado = Net Advances del día
-        net_advances = nyad.diff().dropna()
-
-        df = pd.DataFrame({"net": net_advances}).dropna()
-        df["ema19"] = df["net"].ewm(span=19, adjust=False).mean()
-        df["ema39"] = df["net"].ewm(span=39, adjust=False).mean()
-        df["nymo"]  = df["ema19"] - df["ema39"]
-
-        nymo_value  = round(float(df["nymo"].iloc[-1]),  2)
-        ema19_value = round(float(df["ema19"].iloc[-1]), 2)
-        ema39_value = round(float(df["ema39"].iloc[-1]), 2)
-        net_value   = round(float(df["net"].iloc[-1]),   0)
-
-        if nymo_value >= 60:
-            zone       = "Sobrecompra"
-            zone_color = "#FF1744"
-        elif nymo_value <= -60:
-            zone       = "Sobreventa"
-            zone_color = "#00C853"
-        else:
-            zone       = "Neutral"
-            zone_color = "#FFD600"
-
-        return {
-            "nymo":       nymo_value,
-            "ema19":      ema19_value,
-            "ema39":      ema39_value,
-            "net":        int(net_value),
-            "zone":       zone,
-            "zone_color": zone_color,
-        }
+        for name, ticker in TICKERS.items():
+            try:
+                series = close_all[ticker].dropna()
+                if len(series) < 2:
+                    continue
+                last  = round(float(series.iloc[-1]), 2)
+                prev  = round(float(series.iloc[-2]), 2)
+                chg   = round(last - prev, 2)
+                chg_p = round(((last - prev) / prev) * 100, 2)
+                results[name] = {
+                    "value": last,
+                    "prev":  prev,
+                    "chg":   chg,
+                    "chg_p": chg_p,
+                }
+            except Exception:
+                continue
 
     except Exception:
-        return None
+        pass
+
+    # ── Volatilidad Realizada 21 días (SPX) ──────────────────────
+    try:
+        spx = yf.Ticker("^GSPC").history(period="60d")["Close"].dropna()
+        if len(spx) >= 22:
+            returns    = np.log(spx / spx.shift(1)).dropna()
+            rv_21      = round(float(returns.iloc[-21:].std() * np.sqrt(252) * 100), 2)
+            results["RV21"] = {
+                "value": rv_21,
+                "label": "Vol. Realizada 21d",
+            }
+    except Exception:
+        pass
+
+    return results
