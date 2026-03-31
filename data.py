@@ -57,47 +57,21 @@ def get_market_data():
 def get_nymo_data():
     """
     Calcula el McClellan Oscillator (NYMO) con la fórmula oficial:
-      Net Advances = Advancing Issues (^ANYA) - Declining Issues (^DNYA)
+      Net Advances  = diferencia diaria de ^NYAD (NYSE Advance-Decline Line)
       EMA19 = EMA(Net Advances, span=19)
       EMA39 = EMA(Net Advances, span=39)
       NYMO  = EMA19 - EMA39
     """
     try:
-        # Intentar con distintas variantes de ticker
-        ANYA_TICKERS = ["ANYA", "^ANYA", "^BPNYA"]
-        DNYA_TICKERS = ["DNYA", "^DNYA"]
+        nyad = yf.Ticker("^NYAD").history(period="150d")["Close"].dropna()
 
-        advances = None
-        declines = None
-
-        for t in ANYA_TICKERS:
-            try:
-                s = yf.Ticker(t).history(period="150d")["Close"].dropna()
-                if len(s) > 40:
-                    advances = s
-                    break
-            except Exception:
-                continue
-
-        for t in DNYA_TICKERS:
-            try:
-                s = yf.Ticker(t).history(period="150d")["Close"].dropna()
-                if len(s) > 40:
-                    declines = s
-                    break
-            except Exception:
-                continue
-
-        if advances is None or declines is None:
+        if len(nyad) < 42:
             return None
 
-        # Alinear series por fecha
-        df = pd.DataFrame({"adv": advances, "dec": declines}).dropna()
+        # La diferencia diaria del acumulado = Net Advances del día
+        net_advances = nyad.diff().dropna()
 
-        if len(df) < 40:
-            return None
-
-        df["net"]   = df["adv"] - df["dec"]
+        df = pd.DataFrame({"net": net_advances}).dropna()
         df["ema19"] = df["net"].ewm(span=19, adjust=False).mean()
         df["ema39"] = df["net"].ewm(span=39, adjust=False).mean()
         df["nymo"]  = df["ema19"] - df["ema39"]
