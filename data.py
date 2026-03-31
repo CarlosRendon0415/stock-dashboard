@@ -1,4 +1,5 @@
 import yfinance as yf
+import pandas as pd
 
 INDICES = {
     "SPX": "^GSPC",
@@ -51,3 +52,59 @@ def get_market_data():
             continue
 
     return results
+
+
+def get_nymo_data():
+    """
+    Calcula el McClellan Oscillator (NYMO) con la fórmula oficial:
+      Net Advances = Advancing Issues (^ANYA) - Declining Issues (^DNYA)
+      EMA19 = EMA(Net Advances, span=19)
+      EMA39 = EMA(Net Advances, span=39)
+      NYMO  = EMA19 - EMA39
+    """
+    try:
+        raw = yf.download(["^ANYA", "^DNYA"], period="150d", progress=False, auto_adjust=True)
+
+        if raw.empty:
+            return None
+
+        advances = raw["Close"]["^ANYA"].dropna()
+        declines = raw["Close"]["^DNYA"].dropna()
+
+        # Alinear series por fecha
+        df = pd.DataFrame({"adv": advances, "dec": declines}).dropna()
+
+        if len(df) < 40:
+            return None
+
+        df["net"]   = df["adv"] - df["dec"]
+        df["ema19"] = df["net"].ewm(span=19, adjust=False).mean()
+        df["ema39"] = df["net"].ewm(span=39, adjust=False).mean()
+        df["nymo"]  = df["ema19"] - df["ema39"]
+
+        nymo_value  = round(float(df["nymo"].iloc[-1]),  2)
+        ema19_value = round(float(df["ema19"].iloc[-1]), 2)
+        ema39_value = round(float(df["ema39"].iloc[-1]), 2)
+        net_value   = round(float(df["net"].iloc[-1]),   0)
+
+        if nymo_value >= 60:
+            zone       = "Sobrecompra"
+            zone_color = "#FF1744"
+        elif nymo_value <= -60:
+            zone       = "Sobreventa"
+            zone_color = "#00C853"
+        else:
+            zone       = "Neutral"
+            zone_color = "#FFD600"
+
+        return {
+            "nymo":       nymo_value,
+            "ema19":      ema19_value,
+            "ema39":      ema39_value,
+            "net":        int(net_value),
+            "zone":       zone,
+            "zone_color": zone_color,
+        }
+
+    except Exception:
+        return None
