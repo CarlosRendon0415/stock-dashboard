@@ -321,7 +321,7 @@ app.layout = html.Div([
 
         dbc.Tabs(
             id="sector-tabs",
-            active_tab="XLI",
+            active_tab="XLK",
             children=[
                 dbc.Tab(label=k, tab_id=k,
                         label_style={"color": CDI_GRAY, "font-size": "12px",
