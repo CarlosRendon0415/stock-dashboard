@@ -293,7 +293,7 @@ app.layout = html.Div([
                     html.Span("● > +0.5%",       style={"color": SEM_GREEN,  "font-size": "12px", "margin-right": "16px"}),
                     html.Span("● -0.5% a +0.5%", style={"color": SEM_ORANGE, "font-size": "12px", "margin-right": "16px"}),
                     html.Span("● < -0.5%",       style={"color": SEM_RED,    "font-size": "12px"}),
-        ], className="text-center mb-4"),
+        ], className="text-right mb-4"),
 
                 html.Div(id="indices-content"),
             ], xs=12, lg=6, className="pe-lg-3 mb-4"),
