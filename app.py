@@ -272,7 +272,7 @@ app.layout = html.Div([
 
         html.Div([
             html.Div([
-                html.Span("CLUB DE INVERSIONISTAS", style={
+                html.Span("Dashboard financiero El Club de inversionistas", style={
                     "color": CDI_MINT, "font-size": "26px",
                     "font-weight": "900", "letter-spacing": "3px",
                 }),
