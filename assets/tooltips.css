@@ -1,6 +1,7 @@
 .cdi-tip-wrap {
     position: relative;
     display: inline-block;
+    z-index: 9999;
 }
 
 .cdi-tip-icon {
@@ -13,40 +14,39 @@
     user-select: none;
 }
 
+/* El tooltip aparece DEBAJO del ícono */
 .cdi-tip-box {
     display: none;
-    position: fixed;        /* fixed en lugar de absolute — sale de cualquier contenedor */
+    position: absolute;
     z-index: 99999;
+    top: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
     width: 250px;
-    background-color: #162447 !important;
-    border: 1px solid rgba(0, 229, 160, 0.45) !important;
+    background-color: #162447;
+    border: 1px solid rgba(0, 229, 160, 0.45);
     border-radius: 10px;
     padding: 12px 14px;
     box-shadow: 0 6px 24px rgba(0, 0, 0, 0.6);
     pointer-events: auto;
-    transform: translateX(-50%) translateY(-110%);
+}
+
+/* Flecha apuntando hacia arriba */
+.cdi-tip-box::before {
+    content: "";
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 6px solid transparent;
+    border-bottom-color: rgba(0, 229, 160, 0.45);
 }
 
 .cdi-tip-wrap:hover .cdi-tip-box {
     display: block;
 }
 
-.cdi-tip-desc {
-    color: #FFFFFF !important;
-    font-size: 12px !important;
-    line-height: 1.55 !important;
-    margin: 0 0 10px 0 !important;
-    display: block !important;
-}
-
-.cdi-tip-link {
-    color: #00E5A0 !important;
-    font-size: 11px !important;
-    font-weight: 700 !important;
-    text-decoration: none !important;
-    display: block !important;
-}
-
-.cdi-tip-link:hover {
-    text-decoration: underline !important;
+/* Asegura que los padres no corten el tooltip */
+th, td {
+    overflow: visible !important;
 }
