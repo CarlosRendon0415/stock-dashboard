@@ -276,7 +276,7 @@ app.layout = html.Div([
                     "font-weight": "900", "letter-spacing": "3px",
                 }),
             ], style={"margin-bottom": "4px"}),
-            html.P("Semáforo de Mercado · NYSE", style={
+            html.P("Hyenuk Chu", style={
                 "color": CDI_GRAY, "font-size": "12px",
                 "margin": "0", "letter-spacing": "2px",
             }),
