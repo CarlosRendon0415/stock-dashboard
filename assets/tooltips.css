@@ -15,28 +15,16 @@
 
 .cdi-tip-box {
     display: none;
-    position: absolute;
-    z-index: 9999;
-    bottom: 130%;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 240px;
-    background-color: #162447;
-    border: 1px solid rgba(0, 229, 160, 0.4);
+    position: fixed;        /* fixed en lugar de absolute — sale de cualquier contenedor */
+    z-index: 99999;
+    width: 250px;
+    background-color: #162447 !important;
+    border: 1px solid rgba(0, 229, 160, 0.45) !important;
     border-radius: 10px;
-    padding: 10px 14px;
+    padding: 12px 14px;
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.6);
     pointer-events: auto;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
-}
-
-.cdi-tip-box::after {
-    content: "";
-    position: absolute;
-    top: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-    border: 6px solid transparent;
-    border-top-color: rgba(0, 229, 160, 0.4);
+    transform: translateX(-50%) translateY(-110%);
 }
 
 .cdi-tip-wrap:hover .cdi-tip-box {
@@ -44,17 +32,19 @@
 }
 
 .cdi-tip-desc {
-    color: #FFFFFF;
-    font-size: 12px;
-    line-height: 1.5;
-    margin: 0 0 8px 0;
+    color: #FFFFFF !important;
+    font-size: 12px !important;
+    line-height: 1.55 !important;
+    margin: 0 0 10px 0 !important;
+    display: block !important;
 }
 
 .cdi-tip-link {
     color: #00E5A0 !important;
-    font-size: 11px;
-    font-weight: 700;
+    font-size: 11px !important;
+    font-weight: 700 !important;
     text-decoration: none !important;
+    display: block !important;
 }
 
 .cdi-tip-link:hover {

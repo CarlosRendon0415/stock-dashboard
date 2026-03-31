@@ -179,7 +179,7 @@ def build_indices_table(data):
             bordered=False, hover=False, size="sm",
             style={"margin-bottom": "0", "border-collapse": "collapse"},
         )
-    ], style={"border-radius": "12px", "overflow": "hidden",
+    ], style={"border-radius": "12px",
               "border": f"1px solid {CDI_MINT}33"})
 
 
