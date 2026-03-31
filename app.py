@@ -100,23 +100,11 @@ def info_icon(key):
     return html.Span([
         html.Span("ℹ", className="cdi-tip-icon"),
         html.Div([
-            html.Span(t.get("desc", ""), style={
-                "color": "#FFFFFF",
-                "font-size": "12px",
-                "line-height": "1.55",
-                "margin-bottom": "10px",
-                "display": "block",
-            }),
+            html.P(t.get("desc", ""), className="cdi-tip-desc"),
             html.A("Ver video explicativo →",
                    href=t.get("url", "#"),
                    target="_blank",
-                   style={
-                       "color": "#00E5A0",
-                       "font-size": "11px",
-                       "font-weight": "700",
-                       "text-decoration": "none",
-                       "display": "block",
-                   }),
+                   className="cdi-tip-link"),
         ], className="cdi-tip-box"),
     ], className="cdi-tip-wrap")
 
@@ -157,7 +145,7 @@ def rv_color(v):
 def build_indices_table(data):
     def ma_th(ma):
         return html.Th(
-            html.Span([ma, info_icon(ma)]),
+            html.Span([ma, info_icon(f"info-{ma}")]),
             style={**TH, "text-align": "center"}
         )
 
@@ -203,7 +191,7 @@ def indicator_card(key, ticker, label, value_node, change_node=None):
                 "color": CDI_MINT, "font-weight": "700",
                 "font-size": "14px", "letter-spacing": "1px",
             }),
-            info_icon(key),
+            info_icon(f"info-{key}"),
             html.Span(label, style={
                 "color": CDI_GRAY, "font-size": "11px", "margin-left": "8px",
             }),
@@ -294,11 +282,6 @@ app.layout = html.Div([
             }),
         ], className="text-center py-4"),
 
-        html.Div([
-            html.Span("● > +0.5%",       style={"color": SEM_GREEN,  "font-size": "12px", "margin-right": "16px"}),
-            html.Span("● -0.5% a +0.5%", style={"color": SEM_ORANGE, "font-size": "12px", "margin-right": "16px"}),
-            html.Span("● < -0.5%",       style={"color": SEM_RED,    "font-size": "12px"}),
-        ], className="text-center mb-4"),
 
         dbc.Row([
             dbc.Col([
@@ -306,8 +289,15 @@ app.layout = html.Div([
                     "color": CDI_MINT, "font-size": "11px",
                     "font-weight": "700", "letter-spacing": "2px", "margin-bottom": "10px",
                 }),
+                html.Div([
+                    html.Span("● > +0.5%",       style={"color": SEM_GREEN,  "font-size": "12px", "margin-right": "16px"}),
+                    html.Span("● -0.5% a +0.5%", style={"color": SEM_ORANGE, "font-size": "12px", "margin-right": "16px"}),
+                    html.Span("● < -0.5%",       style={"color": SEM_RED,    "font-size": "12px"}),
+        ], className="text-center mb-4"),
+
                 html.Div(id="indices-content"),
             ], xs=12, lg=6, className="pe-lg-3 mb-4"),
+
 
             dbc.Col([
                 html.P("INDICADORES DE SENTIMIENTO", style={
