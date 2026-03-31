@@ -18,37 +18,103 @@ INDEX_NAMES = {
 }
 
 # ── Paleta CDI ────────────────────────────────────────────────────
-CDI_MINT    = "#00E5A0"
-CDI_NAVY    = "#0D1B3E"
-CDI_NAVY2   = "#162447"   # tarjetas / filas alternas
-CDI_WHITE   = "#FFFFFF"
-CDI_GRAY    = "#8892A4"
+CDI_MINT  = "#00E5A0"
+CDI_NAVY  = "#0D1B3E"
+CDI_NAVY2 = "#162447"
+CDI_WHITE = "#FFFFFF"
+CDI_GRAY  = "#8892A4"
 
-SEM_GREEN   = "#6B8E23"   # verde oliva  > +0.5%
-SEM_ORANGE  = "#FF6D00"   # naranja  -0.5% a +0.5%
-SEM_RED     = "#FF1744"   # rojo  < -0.5%
+SEM_GREEN  = "#6B8E23"
+SEM_ORANGE = "#FF6D00"
+SEM_RED    = "#FF1744"
 
-# ── Estilos reutilizables ────────────────────────────────────────
 TH = {
-    "color": CDI_MINT,
-    "font-size": "11px",
-    "font-weight": "700",
-    "letter-spacing": "1px",
-    "text-transform": "uppercase",
-    "padding": "8px 10px",
-    "border-bottom": f"2px solid {CDI_MINT}",
-    "background-color": CDI_NAVY,
-    "white-space": "nowrap",
+    "color": CDI_MINT, "font-size": "11px", "font-weight": "700",
+    "letter-spacing": "1px", "text-transform": "uppercase",
+    "padding": "8px 10px", "border-bottom": f"2px solid {CDI_MINT}",
+    "background-color": CDI_NAVY, "white-space": "nowrap",
 }
-TD = {
-    "color": CDI_WHITE,
-    "font-size": "12px",
-    "padding": "7px 10px",
-    "border-bottom": "1px solid #1E2D4F",
-    "white-space": "nowrap",
-}
+TD       = {"color": CDI_WHITE, "font-size": "12px", "padding": "7px 10px",
+            "border-bottom": "1px solid #1E2D4F", "white-space": "nowrap"}
 TD_MUTED = {**TD, "color": CDI_GRAY}
 TD_RIGHT = {**TD, "text-align": "right"}
+
+
+# ── Contenido pedagógico de tooltips ─────────────────────────────
+# Reemplaza los href="#" con las URLs reales de tus videos en Thinkific
+TOOLTIPS = {
+    "DMA5": {
+        "desc": "Media Móvil Simple de 5 días. Promedio del precio de cierre de las últimas 5 sesiones. Muy sensible a movimientos de corto plazo.",
+        "url":  "#",
+    },
+    "EMA8": {
+        "desc": "Media Móvil Exponencial de 8 períodos. Da mayor peso a los precios recientes. Ideal para detectar tendencias de corto plazo.",
+        "url":  "#",
+    },
+    "EMA21": {
+        "desc": "Media Móvil Exponencial de 21 períodos. Referencia de tendencia de mediano plazo. Ampliamente utilizada por traders institucionales.",
+        "url":  "#",
+    },
+    "DMA50": {
+        "desc": "Media Móvil Simple de 50 días. Indicador clave de tendencia intermedia. El precio sobre la DMA50 es señal de fortaleza.",
+        "url":  "#",
+    },
+    "DMA200": {
+        "desc": "Media Móvil Simple de 200 días. La más importante a largo plazo. Precio sobre DMA200 = tendencia alcista. Precio bajo = tendencia bajista.",
+        "url":  "#",
+    },
+    "NYMO": {
+        "desc": "Oscilador de McClellan. Mide la amplitud del mercado usando la diferencia entre acciones que suben y bajan en el NYSE. Sobre +60: sobrecompra. Bajo -60: sobreventa.",
+        "url":  "#",
+    },
+    "VIX": {
+        "desc": "Índice del miedo del CBOE. Refleja la volatilidad implícita esperada del S&P 500 a 30 días. VIX < 15: calma. Entre 15-25: precaución. VIX > 25: miedo extremo.",
+        "url":  "#",
+    },
+    "VVIX": {
+        "desc": "Volatilidad del VIX. Mide qué tan rápido puede cambiar el propio VIX. Valores altos anticipan cambios abruptos en el sentimiento del mercado.",
+        "url":  "#",
+    },
+    "SKEW": {
+        "desc": "Índice de riesgo de cola del CBOE. Mide cuánto paga el mercado por protección ante caídas extremas. SKEW > 140: el mercado anticipa eventos de cola (cisnes negros).",
+        "url":  "#",
+    },
+    "RV21": {
+        "desc": "Volatilidad Realizada en 21 días hábiles (~1 mes). Mide el movimiento real del SPX. Comparar RV vs VIX indica si el mercado sobreestima o subestima la volatilidad.",
+        "url":  "#",
+    },
+    "GEX": {
+        "desc": "Gamma Exposure de los market makers en opciones del S&P 500. GEX positivo amortigua movimientos del mercado. GEX negativo los amplifica.",
+        "url":  "#",
+    },
+    "VPVR": {
+        "desc": "Perfil de Volumen del Rango Visible. Muestra el volumen en cada nivel de precio dentro del rango del gráfico. Identifica soportes y resistencias por volumen real.",
+        "url":  "#",
+    },
+}
+
+
+def tooltip_content(key):
+    """Genera el contenido HTML del tooltip pedagógico."""
+    t = TOOLTIPS.get(key, {})
+    return html.Div([
+        html.P(t.get("desc", ""), style={
+            "color": CDI_WHITE, "font-size": "12px",
+            "margin-bottom": "8px", "line-height": "1.5",
+        }),
+        html.A("Ver video explicativo →", href=t.get("url", "#"), target="_blank",
+               style={"color": CDI_MINT, "font-size": "11px", "font-weight": "700",
+                      "text-decoration": "none"}),
+    ], style={"max-width": "240px", "padding": "4px"})
+
+
+def info_icon(element_id):
+    """Ícono ℹ clickeable que activa el tooltip."""
+    return html.Span("ℹ", id=element_id, style={
+        "color": CDI_GRAY, "font-size": "10px",
+        "margin-left": "5px", "cursor": "pointer",
+        "vertical-align": "middle", "opacity": "0.7",
+    })
 
 
 # ── Helpers ──────────────────────────────────────────────────────
@@ -60,13 +126,9 @@ def sem_color(pct):
 
 def badge(text, bg, text_color=CDI_WHITE):
     return html.Span(text, style={
-        "background-color": bg,
-        "color": text_color,
-        "padding": "3px 9px",
-        "border-radius": "20px",
-        "font-size": "11px",
-        "font-weight": "700",
-        "white-space": "nowrap",
+        "background-color": bg, "color": text_color,
+        "padding": "3px 9px", "border-radius": "20px",
+        "font-size": "11px", "font-weight": "700", "white-space": "nowrap",
     })
 
 
@@ -87,13 +149,19 @@ def rv_color(v):
     return SEM_GREEN if v < 12 else (SEM_ORANGE if v < 20 else SEM_RED)
 
 
-# ── Tabla de Índices (izquierda) ─────────────────────────────────
+# ── Tabla de Índices ─────────────────────────────────────────────
 def build_indices_table(data):
+    def ma_th(ma):
+        return html.Th(
+            html.Span([ma, info_icon(f"info-{ma}")]),
+            style={**TH, "text-align": "center"}
+        )
+
     header = html.Thead(html.Tr([
         html.Th("Índice",       style=TH),
         html.Th("Nombre",       style=TH),
         html.Th("Precio (USD)", style={**TH, "text-align": "right"}),
-        *[html.Th(ma, style={**TH, "text-align": "center"}) for ma in MOVING_AVERAGES],
+        *[ma_th(ma) for ma in MOVING_AVERAGES],
     ]))
 
     rows = []
@@ -106,10 +174,8 @@ def build_indices_table(data):
             html.Td(f"USD {values['price']:,.2f}",
                     style={**TD_RIGHT, "background-color": bg, "font-weight": "600"}),
             *[html.Td(
-                badge(
-                    ("+" if values[ma]["pct"] > 0 else "") + f"{values[ma]['pct']}%",
-                    sem_color(values[ma]["pct"])
-                ),
+                badge(("+" if values[ma]["pct"] > 0 else "") + f"{values[ma]['pct']}%",
+                      sem_color(values[ma]["pct"])),
                 style={"text-align": "center", "padding": "6px 8px",
                        "background-color": bg, "border-bottom": "1px solid #1E2D4F"}
             ) for ma in MOVING_AVERAGES],
@@ -121,34 +187,27 @@ def build_indices_table(data):
             bordered=False, hover=False, size="sm",
             style={"margin-bottom": "0", "border-collapse": "collapse"},
         )
-    ], style={
-        "border-radius": "12px",
-        "overflow": "hidden",
-        "border": f"1px solid {CDI_MINT}33",
-    })
+    ], style={"border-radius": "12px", "overflow": "hidden",
+              "border": f"1px solid {CDI_MINT}33"})
 
 
-# ── Tarjetas de Indicadores (derecha) ────────────────────────────
-def indicator_card(ticker, label, value_node, change_node=None):
+# ── Tarjetas de Indicadores ──────────────────────────────────────
+def indicator_card(key, ticker, label, value_node, change_node=None):
     return html.Div([
-        # Encabezado de tarjeta
         html.Div([
             html.Span(ticker, style={
                 "color": CDI_MINT, "font-weight": "700",
                 "font-size": "14px", "letter-spacing": "1px",
             }),
+            info_icon(f"info-{key}"),
             html.Span(label, style={
-                "color": CDI_GRAY, "font-size": "11px",
-                "margin-left": "8px",
+                "color": CDI_GRAY, "font-size": "11px", "margin-left": "8px",
             }),
         ], style={"margin-bottom": "10px"}),
-
-        # Valor + cambio
         html.Div([
             value_node,
             html.Span(change_node or "", style={"margin-left": "8px"}),
         ], style={"display": "flex", "align-items": "center"}),
-
     ], style={
         "background-color": CDI_NAVY2,
         "border": f"1px solid {CDI_MINT}33",
@@ -165,89 +224,84 @@ def build_indicators_cards(ind):
         return html.Span(f"{sign}{chg_p}%",
                          style={"color": color, "font-size": "11px", "font-weight": "600"})
 
-    # NYMO
-    nymo_card = indicator_card(
-        "NYMO", "McClellan Osc.",
-        pending_badge(),
-    )
+    nymo_card = indicator_card("NYMO", "NYMO", "McClellan Osc.", pending_badge())
 
-    # VIX
     if "VIX" in ind:
         v = ind["VIX"]
-        vix_card = indicator_card(
-            "VIX", "Volatilidad implícita",
-            badge(str(v["value"]), vix_color(v["value"])),
-            chg_span(v["chg"], v["chg_p"]),
-        )
+        vix_card = indicator_card("VIX", "VIX", "Volatilidad implícita",
+                                  badge(str(v["value"]), vix_color(v["value"])),
+                                  chg_span(v["chg"], v["chg_p"]))
     else:
-        vix_card = indicator_card("VIX", "Volatilidad implícita", pending_badge())
+        vix_card = indicator_card("VIX", "VIX", "Volatilidad implícita", pending_badge())
 
-    # VVIX
     if "VVIX" in ind:
         v = ind["VVIX"]
-        vvix_card = indicator_card(
-            "VVIX", "Vol. del VIX",
-            badge(str(v["value"]), vvix_color(v["value"])),
-            chg_span(v["chg"], v["chg_p"]),
-        )
+        vvix_card = indicator_card("VVIX", "VVIX", "Vol. del VIX",
+                                   badge(str(v["value"]), vvix_color(v["value"])),
+                                   chg_span(v["chg"], v["chg_p"]))
     else:
-        vvix_card = indicator_card("VVIX", "Vol. del VIX", pending_badge())
+        vvix_card = indicator_card("VVIX", "VVIX", "Vol. del VIX", pending_badge())
 
-    # SKEW
     if "SKEW" in ind:
         v = ind["SKEW"]
-        skew_card = indicator_card(
-            "SKEW", "Riesgo de cola",
-            badge(str(v["value"]), skew_color(v["value"])),
-            chg_span(v["chg"], v["chg_p"]),
-        )
+        skew_card = indicator_card("SKEW", "SKEW", "Riesgo de cola",
+                                   badge(str(v["value"]), skew_color(v["value"])),
+                                   chg_span(v["chg"], v["chg_p"]))
     else:
-        skew_card = indicator_card("SKEW", "Riesgo de cola", pending_badge())
+        skew_card = indicator_card("SKEW", "SKEW", "Riesgo de cola", pending_badge())
 
-    # RV 21d
     if "RV21" in ind:
         v = ind["RV21"]["value"]
-        rv_card = indicator_card(
-            "RV 21d", "Vol. Realizada SPX",
-            badge(f"{v}%", rv_color(v)),
-        )
+        rv_card = indicator_card("RV21", "RV 21d", "Vol. Realizada SPX",
+                                 badge(f"{v}%", rv_color(v)))
     else:
-        rv_card = indicator_card("RV 21d", "Vol. Realizada SPX", pending_badge())
+        rv_card = indicator_card("RV21", "RV 21d", "Vol. Realizada SPX", pending_badge())
 
-    # GEX
-    gex_card  = indicator_card("GEX",  "Gamma Exposure",          pending_badge())
-    vpvr_card = indicator_card("VPVR", "Perfil Vol. Rango Visible", pending_badge())
+    gex_card  = indicator_card("GEX",  "GEX",  "Gamma Exposure",           pending_badge())
+    vpvr_card = indicator_card("VPVR", "VPVR", "Perfil Vol. Rango Visible", pending_badge())
 
     return html.Div([
-        dbc.Row([
-            dbc.Col(nymo_card,  xs=6, className="mb-3"),
-            dbc.Col(vix_card,   xs=6, className="mb-3"),
-        ], className="g-2"),
-        dbc.Row([
-            dbc.Col(vvix_card,  xs=6, className="mb-3"),
-            dbc.Col(skew_card,  xs=6, className="mb-3"),
-        ], className="g-2"),
-        dbc.Row([
-            dbc.Col(rv_card,    xs=6, className="mb-3"),
-            dbc.Col(gex_card,   xs=6, className="mb-3"),
-        ], className="g-2"),
-        dbc.Row([
-            dbc.Col(vpvr_card,  xs=12, className="mb-3"),
-        ], className="g-2"),
+        dbc.Row([dbc.Col(nymo_card, xs=6, className="mb-3"),
+                 dbc.Col(vix_card,  xs=6, className="mb-3")], className="g-2"),
+        dbc.Row([dbc.Col(vvix_card, xs=6, className="mb-3"),
+                 dbc.Col(skew_card, xs=6, className="mb-3")], className="g-2"),
+        dbc.Row([dbc.Col(rv_card,   xs=6, className="mb-3"),
+                 dbc.Col(gex_card,  xs=6, className="mb-3")], className="g-2"),
+        dbc.Row([dbc.Col(vpvr_card, xs=12, className="mb-3")], className="g-2"),
     ])
 
 
-# ── Layout principal ─────────────────────────────────────────────
+# ── Tooltips estáticos (todos en el layout) ───────────────────────
+TOOLTIP_STYLE = {
+    "background-color": CDI_NAVY2,
+    "border": f"1px solid {CDI_MINT}55",
+    "border-radius": "10px",
+    "padding": "10px 14px",
+}
+
+all_tooltips = [
+    # Medias móviles (tabla)
+    *[dbc.Tooltip(tooltip_content(ma), target=f"info-{ma}",
+                  placement="top",
+                  style=TOOLTIP_STYLE)
+      for ma in MOVING_AVERAGES],
+    # Indicadores (tarjetas)
+    *[dbc.Tooltip(tooltip_content(key), target=f"info-{key}",
+                  placement="top",
+                  style=TOOLTIP_STYLE)
+      for key in ["NYMO", "VIX", "VVIX", "SKEW", "RV21", "GEX", "VPVR"]],
+]
+
+
+# ── Layout ────────────────────────────────────────────────────────
 app.layout = html.Div([
     dbc.Container([
 
-        # Header
         html.Div([
             html.Div([
                 html.Span("CLUB DE INVERSIONISTAS", style={
                     "color": CDI_MINT, "font-size": "26px",
                     "font-weight": "900", "letter-spacing": "3px",
-                    "vertical-align": "middle",
                 }),
             ], style={"margin-bottom": "4px"}),
             html.P("Semáforo de Mercado · NYSE", style={
@@ -256,52 +310,44 @@ app.layout = html.Div([
             }),
         ], className="text-center py-4"),
 
-        # Leyenda
         html.Div([
             html.Span("● > +0.5%",       style={"color": SEM_GREEN,  "font-size": "12px", "margin-right": "16px"}),
             html.Span("● -0.5% a +0.5%", style={"color": SEM_ORANGE, "font-size": "12px", "margin-right": "16px"}),
             html.Span("● < -0.5%",       style={"color": SEM_RED,    "font-size": "12px"}),
         ], className="text-center mb-4"),
 
-        # Layout 50 / 50
         dbc.Row([
-
-            # Izquierda — Índices
             dbc.Col([
                 html.P("ÍNDICES DEL MERCADO", style={
                     "color": CDI_MINT, "font-size": "11px",
-                    "font-weight": "700", "letter-spacing": "2px",
-                    "margin-bottom": "10px",
+                    "font-weight": "700", "letter-spacing": "2px", "margin-bottom": "10px",
                 }),
                 html.Div(id="indices-content"),
             ], xs=12, lg=6, className="pe-lg-3 mb-4"),
 
-            # Derecha — Indicadores
             dbc.Col([
                 html.P("INDICADORES DE SENTIMIENTO", style={
                     "color": CDI_MINT, "font-size": "11px",
-                    "font-weight": "700", "letter-spacing": "2px",
-                    "margin-bottom": "10px",
+                    "font-weight": "700", "letter-spacing": "2px", "margin-bottom": "10px",
                 }),
                 html.Div(id="indicators-content"),
             ], xs=12, lg=6, className="ps-lg-3 mb-4"),
-
         ]),
 
-        # Footer
-        html.P(
-            "Datos con retraso de 15 min. Fuente: Yahoo Finance.",
-            className="text-center mt-2 pb-4",
-            style={"color": CDI_GRAY, "font-size": "11px"},
-        ),
+        html.P("Datos con retraso de 15 min. Fuente: Yahoo Finance.",
+               className="text-center mt-2 pb-4",
+               style={"color": CDI_GRAY, "font-size": "11px"}),
 
         dcc.Interval(id="interval", interval=60 * 1000, n_intervals=0),
 
+        # Tooltips pedagógicos
+        *all_tooltips,
+
     ], fluid=True),
-], style={"background-color": CDI_NAVY, "min-height": "100vh", "font-family": "'Segoe UI', sans-serif"})
+], style={"background-color": CDI_NAVY, "min-height": "100vh",
+          "font-family": "'Segoe UI', sans-serif"})
 
 
-# ── Callback ─────────────────────────────────────────────────────
 @app.callback(
     Output("indices-content",    "children"),
     Output("indicators-content", "children"),
