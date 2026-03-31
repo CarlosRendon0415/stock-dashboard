@@ -25,7 +25,7 @@ def get_market_data():
         try:
             close = close_all[ticker].dropna()
 
-            if len(close) < 200:
+            if len(close) < 50:
                 continue
 
             last_price = float(close.iloc[-1])
@@ -63,13 +63,33 @@ def get_nymo_data():
       NYMO  = EMA19 - EMA39
     """
     try:
-        raw = yf.download(["^ANYA", "^DNYA"], period="150d", progress=False, auto_adjust=True)
+        # Intentar con distintas variantes de ticker
+        ANYA_TICKERS = ["ANYA", "^ANYA", "^BPNYA"]
+        DNYA_TICKERS = ["DNYA", "^DNYA"]
 
-        if raw.empty:
+        advances = None
+        declines = None
+
+        for t in ANYA_TICKERS:
+            try:
+                s = yf.Ticker(t).history(period="150d")["Close"].dropna()
+                if len(s) > 40:
+                    advances = s
+                    break
+            except Exception:
+                continue
+
+        for t in DNYA_TICKERS:
+            try:
+                s = yf.Ticker(t).history(period="150d")["Close"].dropna()
+                if len(s) > 40:
+                    declines = s
+                    break
+            except Exception:
+                continue
+
+        if advances is None or declines is None:
             return None
-
-        advances = raw["Close"]["^ANYA"].dropna()
-        declines = raw["Close"]["^DNYA"].dropna()
 
         # Alinear series por fecha
         df = pd.DataFrame({"adv": advances, "dec": declines}).dropna()
