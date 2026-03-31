@@ -244,13 +244,9 @@ app.layout = html.Div([
         # Header
         html.Div([
             html.Div([
-                html.Span("CLUB ", style={
+                html.Span("CLUB DE INVERSIONISTAS", style={
                     "color": CDI_MINT, "font-size": "26px",
                     "font-weight": "900", "letter-spacing": "3px",
-                }),
-                html.Span("DE INVERSIONISTAS", style={
-                    "color": CDI_WHITE, "font-size": "14px",
-                    "font-weight": "700", "letter-spacing": "3px",
                     "vertical-align": "middle",
                 }),
             ], style={"margin-bottom": "4px"}),
