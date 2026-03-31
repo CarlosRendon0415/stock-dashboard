@@ -94,27 +94,19 @@ TOOLTIPS = {
 }
 
 
-def tooltip_content(key):
-    """Genera el contenido HTML del tooltip pedagógico."""
+def info_icon(key):
+    """Ícono ℹ con tooltip CSS puro — funciona con contenido dinámico."""
     t = TOOLTIPS.get(key, {})
-    return html.Div([
-        html.P(t.get("desc", ""), style={
-            "color": CDI_WHITE, "font-size": "12px",
-            "margin-bottom": "8px", "line-height": "1.5",
-        }),
-        html.A("Ver video explicativo →", href=t.get("url", "#"), target="_blank",
-               style={"color": CDI_MINT, "font-size": "11px", "font-weight": "700",
-                      "text-decoration": "none"}),
-    ], style={"max-width": "240px", "padding": "4px"})
-
-
-def info_icon(element_id):
-    """Ícono ℹ clickeable que activa el tooltip."""
-    return html.Span("ℹ", id=element_id, style={
-        "color": CDI_GRAY, "font-size": "10px",
-        "margin-left": "5px", "cursor": "pointer",
-        "vertical-align": "middle", "opacity": "0.7",
-    })
+    return html.Span([
+        html.Span("ℹ", className="cdi-tip-icon"),
+        html.Div([
+            html.P(t.get("desc", ""), className="cdi-tip-desc"),
+            html.A("Ver video explicativo →",
+                   href=t.get("url", "#"),
+                   target="_blank",
+                   className="cdi-tip-link"),
+        ], className="cdi-tip-box"),
+    ], className="cdi-tip-wrap")
 
 
 # ── Helpers ──────────────────────────────────────────────────────
@@ -271,26 +263,6 @@ def build_indicators_cards(ind):
     ])
 
 
-# ── Tooltips estáticos (todos en el layout) ───────────────────────
-TOOLTIP_STYLE = {
-    "background-color": CDI_NAVY2,
-    "border": f"1px solid {CDI_MINT}55",
-    "border-radius": "10px",
-    "padding": "10px 14px",
-}
-
-all_tooltips = [
-    # Medias móviles (tabla)
-    *[dbc.Tooltip(tooltip_content(ma), target=f"info-{ma}",
-                  placement="top",
-                  style=TOOLTIP_STYLE)
-      for ma in MOVING_AVERAGES],
-    # Indicadores (tarjetas)
-    *[dbc.Tooltip(tooltip_content(key), target=f"info-{key}",
-                  placement="top",
-                  style=TOOLTIP_STYLE)
-      for key in ["NYMO", "VIX", "VVIX", "SKEW", "RV21", "GEX", "VPVR"]],
-]
 
 
 # ── Layout ────────────────────────────────────────────────────────
@@ -339,9 +311,6 @@ app.layout = html.Div([
                style={"color": CDI_GRAY, "font-size": "11px"}),
 
         dcc.Interval(id="interval", interval=60 * 1000, n_intervals=0),
-
-        # Tooltips pedagógicos
-        *all_tooltips,
 
     ], fluid=True),
 ], style={"background-color": CDI_NAVY, "min-height": "100vh",
