@@ -3,6 +3,7 @@ from dash import html, dcc
 from dash.dependencies import Input, Output
 import dash_bootstrap_components as dbc
 from data import get_market_data, get_indicators_data
+from sectors import SECTORS, get_sector_data
 
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
 app.title = "CDI · Semáforo de Mercado"
@@ -308,8 +309,36 @@ app.layout = html.Div([
             ], xs=12, lg=6, className="ps-lg-3 mb-4"),
         ]),
 
+        # ── Separador ────────────────────────────────────────────
+        html.Hr(style={"border-color": "#1E2D4F", "margin": "32px 0 24px"}),
+
+        # ── Sección Sectores S&P 500 ─────────────────────────────
+        html.P("SECTORES S&P 500", style={
+            "color": CDI_MINT, "font-size": "11px",
+            "font-weight": "700", "letter-spacing": "2px",
+            "margin-bottom": "16px",
+        }),
+
+        dbc.Tabs(
+            id="sector-tabs",
+            active_tab="XLI",
+            children=[
+                dbc.Tab(label=k, tab_id=k,
+                        label_style={"color": CDI_GRAY, "font-size": "12px",
+                                     "font-weight": "600", "padding": "8px 14px"},
+                        active_label_style={"color": CDI_NAVY, "background-color": CDI_MINT,
+                                            "font-size": "12px", "font-weight": "700",
+                                            "border-radius": "6px 6px 0 0", "padding": "8px 14px"})
+                for k in SECTORS
+            ],
+            style={"border-bottom": f"2px solid {CDI_MINT}44", "margin-bottom": "0"},
+        ),
+
+        html.Div(id="sector-content", style={"margin-top": "0"}),
+
+        # ── Footer ────────────────────────────────────────────────
         html.P("Datos con retraso de 15 min. Fuente: Yahoo Finance.",
-               className="text-center mt-2 pb-4",
+               className="text-center mt-4 pb-4",
                style={"color": CDI_GRAY, "font-size": "11px"}),
 
         dcc.Interval(id="interval", interval=60 * 1000, n_intervals=0),
@@ -317,6 +346,97 @@ app.layout = html.Div([
     ], fluid=True),
 ], style={"background-color": CDI_NAVY, "min-height": "100vh",
           "font-family": "'Segoe UI', sans-serif"})
+
+
+# ── Tabla de Sectores ────────────────────────────────────────────
+def pct_badge(val):
+    """Badge con color semáforo para porcentajes."""
+    if val is None:
+        return html.Span("—", style={"color": CDI_GRAY, "font-size": "12px"})
+    color = sem_color(val)
+    sign  = "+" if val > 0 else ""
+    return badge(f"{sign}{val}%", color)
+
+
+def rs_badge(val):
+    """Badge para Relative Strength (escala 1-99)."""
+    if val is None:
+        return html.Span("—", style={"color": CDI_GRAY, "font-size": "12px"})
+    color = SEM_GREEN if val >= 70 else (SEM_ORANGE if val >= 40 else SEM_RED)
+    return badge(str(val), color)
+
+
+def build_sector_table(sector_key):
+    rows_data = get_sector_data(sector_key)
+
+    if not rows_data:
+        return html.P("No se pudieron obtener datos.",
+                      style={"color": CDI_GRAY, "font-size": "12px", "padding": "16px"})
+
+    TH_S = {**TH, "font-size": "10px", "padding": "8px 10px"}
+
+    header = html.Thead(html.Tr([
+        html.Th("Ticker",       style={**TH_S, "width": "80px"}),
+        html.Th("Nombre",       style=TH_S),
+        html.Th("Precio (USD)", style={**TH_S, "text-align": "right"}),
+        html.Th("RS",           style={**TH_S, "text-align": "center"}),
+        html.Th("1D",           style={**TH_S, "text-align": "center"}),
+        html.Th("1W",           style={**TH_S, "text-align": "center"}),
+        html.Th("1M",           style={**TH_S, "text-align": "center"}),
+        html.Th("YTD",          style={**TH_S, "text-align": "center"}),
+        html.Th("1Y",           style={**TH_S, "text-align": "center"}),
+    ]))
+
+    table_rows = []
+    for i, row in enumerate(rows_data):
+        is_sector = (row["ticker"] == sector_key)
+        bg        = "#0F2040" if is_sector else (CDI_NAVY if i % 2 == 0 else CDI_NAVY2)
+        ticker_style = {
+            **TD, "background-color": bg,
+            "color": CDI_MINT if is_sector else CDI_WHITE,
+            "font-weight": "700" if is_sector else "400",
+        }
+
+        table_rows.append(html.Tr([
+            html.Td(row["ticker"],  style=ticker_style),
+            html.Td(row["name"],    style={**TD_MUTED, "background-color": bg,
+                                           "font-weight": "600" if is_sector else "400"}),
+            html.Td(f"USD {row['price']:,.2f}",
+                    style={**TD_RIGHT, "background-color": bg,
+                           "color": CDI_MINT if is_sector else CDI_WHITE}),
+            html.Td(rs_badge(row["rs"]),
+                    style={"text-align": "center", "padding": "5px 8px", "background-color": bg,
+                           "border-bottom": "1px solid #1E2D4F"}),
+            *[html.Td(pct_badge(row[col]),
+                      style={"text-align": "center", "padding": "5px 8px", "background-color": bg,
+                             "border-bottom": "1px solid #1E2D4F"})
+              for col in ["d1", "w1", "m1", "ytd", "y1"]],
+        ]))
+
+    return html.Div([
+        dbc.Table(
+            [header, html.Tbody(table_rows)],
+            bordered=False, hover=False, size="sm",
+            style={"margin-bottom": "0", "border-collapse": "collapse"},
+        )
+    ], style={
+        "border": f"1px solid {CDI_MINT}33",
+        "border-top": "none",
+        "border-radius": "0 0 12px 12px",
+        "overflow": "hidden",
+    })
+
+
+@app.callback(
+    Output("sector-content", "children"),
+    Input("sector-tabs",     "active_tab"),
+)
+def update_sector(active_tab):
+    return dbc.Spinner(
+        build_sector_table(active_tab),
+        color=CDI_MINT,
+        spinner_style={"margin": "20px auto"},
+    )
 
 
 @app.callback(
